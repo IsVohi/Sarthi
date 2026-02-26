@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 20% 5%; /* #0a0a0f */
+    --foreground: 210 40% 98%; /* #f8fafc */
+
+    --card: 240 24% 10%; /* #13131f */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 240 24% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 239 84% 67%; /* #6366f1 (indigo) */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 258 90% 66%; /* #8b5cf6 (purple) */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 240 15% 15%; /* #1e1e2e */
+    --muted-foreground: 215 16% 65%; /* #94a3b8 */
+
+    --accent: 190 94% 43%; /* #06b6d4 (cyan) */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 240 15% 15%; /* #1e1e2e */
+    --input: 240 15% 15%;
+    --ring: 239 84% 67%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-color: var(--background);
+    color: var(--foreground);
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+  
+  .neon-border-hover {
+    @apply transition-all duration-300;
+  }
+  
+  .neon-border-hover:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+  }
+  
+  .bg-grid-pattern {
+    background-image: linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#06b6d4];
+  }
+}
+
+@layer utilities {
+  /* Scrollbar override */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* Global focus behavior */
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5) !important;
+  }
+}

@@ -4,7 +4,9 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Send, Minus } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useSarthiStore } from "@/lib/store/userStore";
+import { API } from "@/lib/api";
 
 const contextChips: Record<string, string[]> = {
     "/dashboard": ["What should I focus on today?", "Show my weakest skills", "How am I progressing?"],
@@ -28,22 +30,27 @@ export default function ChatFAB() {
 
     const chips = contextChips[pathname] || contextChips["/dashboard"];
 
-    const handleSend = (text: string) => {
+    const handleSend = async (text: string) => {
         if (!text.trim()) return;
         setMessages((prev) => [...prev, { role: "user", content: text }]);
         setInput("");
         setIsTyping(true);
 
-        setTimeout(() => {
+        try {
+            const res = await API.chat({ message: text, context: pathname });
             setMessages((prev) => [
                 ...prev,
-                {
-                    role: "ai",
-                    content: `Great question! Based on your profile targeting **${user.targetRole}** roles at ${user.targetCompanies.slice(0, 2).join(" & ")}, I'd suggest focusing on your weak areas first. Since I'm running in demo mode, connect AWS Bedrock for real-time AI coaching.`,
-                },
+                { role: "ai", content: res.data },
             ]);
+        } catch (error) {
+            console.error(error);
+            setMessages((prev) => [
+                ...prev,
+                { role: "ai", content: "Sorry, I am having trouble connecting right now." },
+            ]);
+        } finally {
             setIsTyping(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -115,18 +122,18 @@ export default function ChatFAB() {
                                 ) : (
                                     <>
                                         {messages.map((msg, i) => (
-                                            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                                                <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === "user" ? "bg-indigo-500/20 border border-indigo-500/30 text-white rounded-br-sm" : "bg-[#13131f] border border-[#1e1e2e] text-slate-200 rounded-bl-sm"}`}>
-                                                    {msg.content}
+                                            <div key={i} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                                <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === "user" ? "bg-indigo-500/20 border border-indigo-500/30 text-white rounded-br-sm" : "bg-[#13131f] border border-[#1e1e2e] text-slate-200 rounded-bl-sm prose prose-sm prose-invert"}`}>
+                                                    {msg.role === 'user' ? msg.content : <ReactMarkdown>{msg.content}</ReactMarkdown>}
                                                 </div>
                                             </div>
                                         ))}
                                         {isTyping && (
                                             <div className="flex justify-start">
-                                                <div className="bg-[#13131f] border border-[#1e1e2e] p-3 rounded-2xl rounded-bl-sm flex gap-1.5">
-                                                    <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-2 h-2 rounded-full bg-indigo-400" />
-                                                    <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-2 h-2 rounded-full bg-indigo-400" />
-                                                    <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-2 h-2 rounded-full bg-indigo-400" />
+                                                <div className="bg-[#13131f] border border-[#1e1e2e] p-3 py-4 rounded-2xl rounded-bl-sm flex gap-1.5 items-center">
+                                                    <motion.div animate={{ y: [-3, 3, -3] }} transition={{ repeat: Infinity, duration: 0.8, ease: "easeInOut" }} className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                                                    <motion.div animate={{ y: [-3, 3, -3] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2, ease: "easeInOut" }} className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                                                    <motion.div animate={{ y: [-3, 3, -3] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.4, ease: "easeInOut" }} className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                                                 </div>
                                             </div>
                                         )}

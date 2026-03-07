@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, ExternalLink, RefreshCw } from "lucide-react";
+import { Sparkles, ExternalLink, RefreshCw, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { useSarthiStore } from "@/lib/store/userStore";
 import {
     BarChart,
     Bar,
@@ -56,6 +58,48 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 export default function SkillGapChart() {
+    const { skillGap } = useSarthiStore();
+
+    if (!skillGap.analyzed) {
+        return (
+            <motion.div
+                variants={staggerItem}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                className="glass-card bg-[#13131f] border border-[#1e1e2e] rounded-2xl p-8 mb-8 flex flex-col items-center justify-center text-center min-h-[300px]"
+            >
+                <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-4">
+                    <Sparkles className="w-8 h-8 text-indigo-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">Discover Your Skill Gap</h2>
+                <p className="text-slate-400 max-w-md mb-6">
+                    Our AI will analyze your current skills against industry requirements to build a personalized mastery plan.
+                </p>
+                <Link
+                    href="/dashboard/skills"
+                    className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-colors"
+                >
+                    Start Analysis <ArrowRight className="w-4 h-4" />
+                </Link>
+            </motion.div>
+        );
+    }
+
+    // Dynamic Chart Data mapping from store
+    const dynamicSkillData = [
+        ...skillGap.strongSkills.map(s => ({ name: s, current: 85, required: 90, priority: "low" })),
+        ...skillGap.missingSkills.map(m => ({
+            name: m.skill,
+            current: 30,
+            required: 85,
+            priority: m.priority
+        }))
+    ].slice(0, 6);
+
+    const highPriorityCount = skillGap.missingSkills.filter(m => m.priority === 'high').length;
+    const medPriorityCount = skillGap.missingSkills.filter(m => m.priority === 'medium').length;
+
     return (
         <motion.div
             variants={staggerContainer}
@@ -68,15 +112,15 @@ export default function SkillGapChart() {
             <motion.div variants={staggerItem} className="lg:col-span-2 glass-card bg-[#13131f] border border-[#1e1e2e] rounded-2xl p-6">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-white">Your Skill Gap Report</h2>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/20 rounded-md transition-colors border border-indigo-500/20">
+                    <Link href="/dashboard/skills" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/20 rounded-md transition-colors border border-indigo-500/20">
                         <RefreshCw className="w-3.5 h-3.5" /> Re-analyze
-                    </button>
+                    </Link>
                 </div>
 
                 <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart
-                            data={skillData}
+                            data={dynamicSkillData}
                             layout="vertical"
                             margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
                             barGap={4}
@@ -93,7 +137,7 @@ export default function SkillGapChart() {
                             />
                             <Tooltip cursor={{ fill: '#1e1e2e', opacity: 0.4 }} content={<CustomTooltip />} />
                             <Bar dataKey="current" name="Your Level" radius={[0, 4, 4, 0]} barSize={12}>
-                                {skillData.map((entry, index) => (
+                                {dynamicSkillData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.priority === 'high' ? '#ef4444' : entry.priority === 'medium' ? '#f59e0b' : '#10b981'} />
                                 ))}
                             </Bar>
@@ -106,15 +150,15 @@ export default function SkillGapChart() {
                 <div className="flex flex-wrap gap-4 mt-6 pt-6 border-t border-[#1e1e2e]">
                     <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-xs text-slate-400">High Priority: <strong className="text-white">Docker, System Design</strong></span>
+                        <span className="text-xs text-slate-400">High Priority: <strong className="text-white">{highPriorityCount} Skills</strong></span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                        <span className="text-xs text-slate-400">Medium: <strong className="text-white">AWS Basics, REST API</strong></span>
+                        <span className="text-xs text-slate-400">Medium: <strong className="text-white">{medPriorityCount} Skills</strong></span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                        <span className="text-xs text-slate-400">Covered: <strong className="text-white">Node.js</strong></span>
+                        <span className="text-xs text-slate-400">Mastered: <strong className="text-white">{skillGap.strongSkills.length} Skills</strong></span>
                     </div>
                 </div>
             </motion.div>
@@ -136,7 +180,7 @@ export default function SkillGapChart() {
                 </div>
 
                 <p className="text-slate-300 text-sm leading-relaxed mb-6 flex-grow">
-                    Based on your profile, focus on <strong className="text-white">Docker fundamentals</strong> this week. Companies like <em>Razorpay</em> and <em>Zepto</em> prioritize containerization knowledge for backend roles.
+                    Based on your profile, focus on <strong className="text-white">{skillGap.missingSkills[0]?.skill || "your fundamentals"}</strong> this week. Focus on closing this specific gap to drastically improve your readiness score.
                 </p>
 
                 <div className="space-y-4 mt-auto">

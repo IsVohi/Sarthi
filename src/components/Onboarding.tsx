@@ -4,10 +4,15 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Github, Sparkles } from "lucide-react";
 import confetti from "canvas-confetti";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { API } from "@/lib/api";
+import { useSarthiStore } from "@/lib/store/userStore";
 
 // --- Types ---
 type OnboardingData = {
     fullName: string;
+    email: string;
     college: string;
     city: string;
     year: string;
@@ -18,6 +23,7 @@ type OnboardingData = {
     targetCompanies: string[];
     timeline: string;
     githubUrl: string;
+    password: string;
 };
 
 // --- Animations ---
@@ -52,6 +58,9 @@ const staggerItem = {
 };
 
 export function OnboardingFlow() {
+    const router = useRouter();
+    const { user, setUser, setOnboardingComplete } = useSarthiStore();
+
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0); // 1 = forward, -1 = backward
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,6 +77,8 @@ export function OnboardingFlow() {
         targetCompanies: [],
         timeline: "",
         githubUrl: "",
+        email: "", // We'll keep it in types for payload compatibility but hide from UI
+        password: "", // We'll keep it in types for payload compatibility but hide from UI
     });
 
     const nextStep = () => {
@@ -90,41 +101,70 @@ export function OnboardingFlow() {
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setIsSubmitting(false);
+        try {
+            const currentSkills = data.skills.concat(data.customSkill ? [data.customSkill] : []);
+            const payload = {
+                name: data.fullName,
+                email: user.email || data.email, // Use email from store (signed in)
+                college: data.college,
+                city: data.city,
+                year: data.year,
+                branch: data.branch,
+                targetRole: data.targetRole,
+                targetCompanies: data.targetCompanies,
+                currentSkills,
+                githubUrl: data.githubUrl,
+                timeline: data.timeline,
+                // password is NOT sent here anymore because it was set at signup
+            };
 
-        // Confetti
-        const duration = 3 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+            await API.saveOnboarding(payload);
 
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+            setUser(payload);
+            setOnboardingComplete();
 
-        const interval: ReturnType<typeof setInterval> = setInterval(function () {
-            const timeLeft = animationEnd - Date.now();
+            toast.success("Profile saved! Building your roadmap...");
 
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
-            }
+            // Confetti
+            const duration = 3 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
 
-            const particleCount = 50 * (timeLeft / duration);
-            confetti({
-                ...defaults, particleCount,
-                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-            });
-            confetti({
-                ...defaults, particleCount,
-                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-            });
-        }, 250);
+            const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+            const interval: ReturnType<typeof setInterval> = setInterval(function () {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+                confetti({
+                    ...defaults, particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                });
+                confetti({
+                    ...defaults, particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                });
+            }, 250);
+
+            setTimeout(() => {
+                router.push("/dashboard");
+            }, 1000);
+        } catch (error: any) {
+            toast.error(error.message || "Failed to save profile");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Render current step component
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <StepWelcome nextStep={nextStep} />;
+                return <StepWelcome nextStep={nextStep} updateData={updateData} />;
             case 2:
                 return <StepBasicInfo data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
             case 3: return <StepSkills data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
@@ -195,7 +235,22 @@ export function OnboardingFlow() {
 
 // --- Step Components ---
 
-function StepWelcome({ nextStep }: { nextStep: () => void }) {
+function StepWelcome({ nextStep, updateData }: { nextStep: () => void; updateData: (d: Partial<OnboardingData>) => void }) {
+    const fillDemoData = () => {
+        updateData({
+            fullName: "Vikas Sharma",
+            college: "Poornima University",
+            city: "Jaipur",
+            year: "3rd Year",
+            branch: "Computer Science",
+            skills: ["JavaScript", "React", "Node.js", "MongoDB"],
+            targetRole: "Full Stack Developer",
+            targetCompanies: ["Google", "Microsoft", "Amazon"],
+            timeline: "6 months",
+            githubUrl: "https://github.com/vikassharma",
+        });
+        nextStep();
+    }
     return (
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="text-center flex flex-col items-center justify-center h-full pt-6">
             <motion.div variants={staggerItem} className="text-6xl mb-6">🎓</motion.div>
@@ -205,14 +260,22 @@ function StepWelcome({ nextStep }: { nextStep: () => void }) {
             <motion.p variants={staggerItem} className="text-slate-400 text-lg max-w-sm mb-12">
                 Let&apos;s build your personalized career roadmap. This takes about 2 minutes.
             </motion.p>
-            <motion.button
-                variants={staggerItem}
-                onClick={nextStep}
-                className="flex items-center gap-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-8 py-3.5 rounded-full font-semibold transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] group"
-            >
-                Let&apos;s Begin
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </motion.button>
+            <motion.div variants={staggerItem} className="flex flex-col items-center gap-4">
+                <button
+                    onClick={nextStep}
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-8 py-3.5 rounded-full font-semibold transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_rgba(99,102,241,0.6)] group"
+                >
+                    Let&apos;s Begin
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <button
+                    onClick={fillDemoData}
+                    className="text-sm text-slate-400 hover:text-indigo-400 font-medium transition-colors"
+                >
+                    Fast-track with Demo Data
+                </button>
+            </motion.div>
         </motion.div>
     );
 }
@@ -226,16 +289,20 @@ function StepBasicInfo({ data, updateData, nextStep, prevStep }: { data: Onboard
             </motion.div>
 
             <div className="space-y-4 flex-grow">
-                <motion.div variants={staggerItem}>
-                    <input
-                        type="text"
-                        placeholder="Full Name"
-                        value={data.fullName}
-                        onChange={(e) => updateData({ fullName: e.target.value })}
-                        className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-[#6366f1] focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all"
-                    />
-                </motion.div>
+                {/* Row 1: Name & Email */}
+                <div className="grid grid-cols-1 gap-4">
+                    <motion.div variants={staggerItem}>
+                        <input
+                            type="text"
+                            placeholder="Full Name"
+                            value={data.fullName}
+                            onChange={(e) => updateData({ fullName: e.target.value })}
+                            className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-[#6366f1] focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all"
+                        />
+                    </motion.div>
+                </div>
 
+                {/* Row 2: College & City */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <motion.div variants={staggerItem}>
                         <input
@@ -257,6 +324,7 @@ function StepBasicInfo({ data, updateData, nextStep, prevStep }: { data: Onboard
                     </motion.div>
                 </div>
 
+                {/* Row 3: Year & Branch */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <motion.div variants={staggerItem}>
                         <select
@@ -289,6 +357,7 @@ function StepBasicInfo({ data, updateData, nextStep, prevStep }: { data: Onboard
                         </select>
                     </motion.div>
                 </div>
+
             </div>
 
             <motion.div variants={staggerItem} className="flex justify-between mt-8">
@@ -299,7 +368,7 @@ function StepBasicInfo({ data, updateData, nextStep, prevStep }: { data: Onboard
                     Next <ArrowRight className="w-4 h-4" />
                 </button>
             </motion.div>
-        </motion.div>
+        </motion.div >
     );
 }
 

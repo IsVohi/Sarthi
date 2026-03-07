@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { API } from "@/lib/api";
 
 /* ─── Types ─── */
 export interface MissingSkill {
@@ -28,14 +29,24 @@ export interface WeekPlan {
   weeklyProject: string;
 }
 
+export interface ProjectIssue {
+  severity: "high" | "medium" | "low";
+  description: string;
+  suggestion: string;
+}
+
 export interface ProjectReview {
-  id: string;
+  id: string; // generated locally front-end
   projectName: string;
   githubUrl: string;
   techStack: string[];
-  overallScore: number;
-  submittedAt: string;
   status: "pending" | "reviewed";
+  submittedAt: string;
+  overallScore: number;
+  strengths: string[];
+  issues: ProjectIssue[];
+  improvedReadme: string;
+  interviewQuestions: string[];
 }
 
 export interface Notification {
@@ -48,6 +59,7 @@ export interface Notification {
 
 export interface UserProfile {
   name: string;
+  email: string;
   college: string;
   city: string;
   year: string;
@@ -69,6 +81,7 @@ export interface SkillGapData {
   missingSkills: MissingSkill[];
   summary: string;
   analyzedAt: string;
+  weeklyFocus: string;
 }
 
 export interface LearningPathData {
@@ -79,12 +92,34 @@ export interface LearningPathData {
   overallProgress: number;
 }
 
+export interface DSAQuestion {
+  topic: string;
+  question: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  companyTags: string[];
+}
+
+export interface SystemDesignQuestion {
+  topic: string;
+  question: string;
+  keyPoints: string[];
+}
+
+export interface BehavioralQuestion {
+  question: string;
+  tips: string;
+}
+
 export interface InterviewPrepData {
+  generated: boolean;
   questionsAttempted: number;
   questionsSolved: string[];
   mockSessionsCompleted: number;
   weakAreas: string[];
   strongAreas: string[];
+  dsaQuestions: DSAQuestion[];
+  systemDesign: SystemDesignQuestion[];
+  behavioral: BehavioralQuestion[];
 }
 
 /* ─── Store Interface ─── */
@@ -98,13 +133,15 @@ interface SarthiStore {
   activeSection: string;
   notifications: Notification[];
   mobileMenuOpen: boolean;
+  isLoading: boolean;
 
   setUser: (data: Partial<UserProfile>) => void;
   setSkillGap: (data: Partial<SkillGapData>) => void;
   setLearningPath: (data: Partial<LearningPathData>) => void;
+  setInterviewPrep: (data: Partial<InterviewPrepData>) => void;
   addProjectReview: (review: ProjectReview) => void;
-  updateTaskComplete: (week: number, taskIndex: number) => void;
-  markWeekComplete: (week: number) => void;
+  toggleTaskCompletion: (week: number, day: string, taskTitle: string) => void;
+  completeWeek: (week: number) => void;
   addSolvedQuestion: (id: string) => void;
   setOnboardingComplete: () => void;
   addNotification: (notif: Notification) => void;
@@ -112,11 +149,18 @@ interface SarthiStore {
   markAllNotificationsRead: () => void;
   setActiveSection: (section: string) => void;
   setMobileMenuOpen: (open: boolean) => void;
+  setLoading: (loading: boolean) => void;
+  demoLogin: () => void;
+  resetStore: () => void;
+  syncToCloud: (email: string) => Promise<void>;
+  loadFromCloud: (email: string) => Promise<void>;
+  syncTaskComplete: (email: string, weekIndex: number, dayIndex: number, taskIndex: number) => Promise<void>;
 }
 
 /* ─── Demo Data ─── */
 const demoUser: UserProfile = {
   name: "Vikas Sharma",
+  email: "vikas.sharma@example.com",
   college: "Poornima University",
   city: "Jaipur",
   year: "3rd Year",
@@ -145,6 +189,7 @@ const demoSkillGap: SkillGapData = {
   ],
   summary: "You have solid fundamentals in backend development. Focus on system design patterns and DevOps tooling to become interview-ready for product companies.",
   analyzedAt: new Date().toISOString(),
+  weeklyFocus: "System Design",
 };
 
 const demoWeeks: WeekPlan[] = [
@@ -236,41 +281,64 @@ const demoNotifications: Notification[] = [
   { id: "n5", text: "New system design resource added", type: "info", read: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
 ];
 
+/* ─── Initial State ─── */
+const initialState = {
+  user: {
+    name: "",
+    email: "",
+    college: "",
+    city: "",
+    year: "",
+    branch: "",
+    targetRole: "",
+    targetCompanies: [],
+    currentSkills: [],
+    githubUrl: "",
+    avatar: "",
+    timeline: "",
+  } as UserProfile,
+  skillGap: {
+    analyzed: false,
+    readinessScore: 0,
+    currentLevel: "",
+    estimatedWeeks: 0,
+    strongSkills: [],
+    missingSkills: [],
+    summary: "",
+    analyzedAt: "",
+    weeklyFocus: "",
+  } as SkillGapData,
+  learningPath: {
+    generated: false,
+    totalWeeks: 0,
+    currentWeek: 0,
+    weeklyPlan: [],
+    overallProgress: 0,
+  } as LearningPathData,
+  projectReviews: [] as ProjectReview[],
+  interviewPrep: {
+    generated: false,
+    questionsAttempted: 0,
+    questionsSolved: [] as string[],
+    mockSessionsCompleted: 0,
+    weakAreas: [] as string[],
+    strongAreas: [] as string[],
+    dsaQuestions: [] as DSAQuestion[],
+    systemDesign: [] as SystemDesignQuestion[],
+    behavioral: [] as BehavioralQuestion[],
+  } as InterviewPrepData,
+  onboardingComplete: false,
+  activeSection: "dashboard",
+  notifications: [] as Notification[],
+  mobileMenuOpen: false,
+  isLoading: false,
+};
+
 /* ─── Store ─── */
 export const useSarthiStore = create<SarthiStore>()(
   persist(
     (set) => ({
-      user: demoUser,
-      skillGap: demoSkillGap,
-      learningPath: {
-        generated: true,
-        totalWeeks: 6,
-        currentWeek: 3,
-        weeklyPlan: demoWeeks,
-        overallProgress: 38,
-      },
-      projectReviews: [
-        {
-          id: "pr1",
-          projectName: "Django Todo App",
-          githubUrl: "https://github.com/vikassharma/django-todo",
-          techStack: ["Python", "Django", "PostgreSQL"],
-          overallScore: 62,
-          submittedAt: new Date(Date.now() - 172800000).toISOString(),
-          status: "reviewed",
-        },
-      ],
-      interviewPrep: {
-        questionsAttempted: 47,
-        questionsSolved: ["q1", "q5", "q12", "q18", "q22"],
-        mockSessionsCompleted: 3,
-        weakAreas: ["System Design", "Dynamic Programming"],
-        strongAreas: ["Arrays", "Strings", "Hash Maps", "REST APIs"],
-      },
-      onboardingComplete: true,
-      activeSection: "dashboard",
-      notifications: demoNotifications,
-      mobileMenuOpen: false,
+      ...initialState,
 
       /* ─── Actions ─── */
       setUser: (data) =>
@@ -282,43 +350,63 @@ export const useSarthiStore = create<SarthiStore>()(
       setLearningPath: (data) =>
         set((s) => ({ learningPath: { ...s.learningPath, ...data } })),
 
+      setInterviewPrep: (data) =>
+        set((s) => ({
+          interviewPrep: { ...s.interviewPrep, ...data }
+        })),
+
       addProjectReview: (review) =>
         set((s) => ({ projectReviews: [...s.projectReviews, review] })),
 
-      updateTaskComplete: (week, taskIndex) =>
+      toggleTaskCompletion: (weekNumber, dayName, taskTitle) =>
         set((s) => {
           const plan = [...s.learningPath.weeklyPlan];
-          const w = { ...plan[week] };
+          const weekIndex = plan.findIndex(w => w.week === weekNumber);
+          if (weekIndex === -1) return s;
+
+          const w = { ...plan[weekIndex] };
           const tasks = [...w.dailyTasks];
-          tasks[taskIndex] = { ...tasks[taskIndex], completed: !tasks[taskIndex].completed };
+
+          const taskIndex = tasks.findIndex(t => t.day === dayName && t.task === taskTitle);
+          if (taskIndex !== -1) {
+            tasks[taskIndex] = { ...tasks[taskIndex], completed: !tasks[taskIndex].completed };
+          }
+
           w.dailyTasks = tasks;
-          plan[week] = w;
+          plan[weekIndex] = w;
+
           const totalTasks = plan.reduce((a, wk) => a + wk.dailyTasks.length, 0);
           const doneTasks = plan.reduce((a, wk) => a + wk.dailyTasks.filter((t) => t.completed).length, 0);
+
           return {
             learningPath: {
               ...s.learningPath,
               weeklyPlan: plan,
-              overallProgress: Math.round((doneTasks / totalTasks) * 100),
+              overallProgress: totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100),
             },
           };
         }),
 
-      markWeekComplete: (week) =>
+      completeWeek: (weekNumber) =>
         set((s) => {
           const plan = [...s.learningPath.weeklyPlan];
-          const w = { ...plan[week] };
+          const weekIndex = plan.findIndex(w => w.week === weekNumber);
+          if (weekIndex === -1) return s;
+
+          const w = { ...plan[weekIndex] };
           w.completed = true;
           w.dailyTasks = w.dailyTasks.map((t) => ({ ...t, completed: true }));
-          plan[week] = w;
+          plan[weekIndex] = w;
+
           const totalTasks = plan.reduce((a, wk) => a + wk.dailyTasks.length, 0);
           const doneTasks = plan.reduce((a, wk) => a + wk.dailyTasks.filter((t) => t.completed).length, 0);
+
           return {
             learningPath: {
               ...s.learningPath,
               weeklyPlan: plan,
-              currentWeek: Math.min(week + 2, s.learningPath.totalWeeks),
-              overallProgress: Math.round((doneTasks / totalTasks) * 100),
+              currentWeek: Math.min(weekNumber + 1, s.learningPath.totalWeeks),
+              overallProgress: totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100),
             },
           };
         }),
@@ -351,7 +439,96 @@ export const useSarthiStore = create<SarthiStore>()(
 
       setActiveSection: (section) => set({ activeSection: section }),
       setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
+      setLoading: (loading) => set({ isLoading: loading }),
+      demoLogin: () => set({
+        user: demoUser,
+        skillGap: demoSkillGap,
+        learningPath: {
+          generated: true,
+          totalWeeks: 6,
+          currentWeek: 3,
+          weeklyPlan: demoWeeks,
+          overallProgress: 38,
+        },
+        projectReviews: [
+          {
+            id: "pr1",
+            projectName: "Django Todo App",
+            githubUrl: "https://github.com/vikassharma/django-todo",
+            techStack: ["Python", "Django", "PostgreSQL"],
+            overallScore: 62,
+            submittedAt: new Date(Date.now() - 172800000).toISOString(),
+            status: "reviewed",
+            strengths: ["Good folder structure", "REST patterns"],
+            issues: [
+              { severity: "high", description: "API keys in code", suggestion: "Use python-dotenv" }
+            ],
+            improvedReadme: "# Todo App\n...",
+            interviewQuestions: ["How does Django ORM work?"]
+          },
+        ],
+        interviewPrep: {
+          generated: false,
+          questionsAttempted: 12,
+          questionsSolved: ["q1"],
+          mockSessionsCompleted: 2,
+          weakAreas: ["Dynamic Programming", "System Design"],
+          strongAreas: ["Arrays", "API Design"],
+          dsaQuestions: [],
+          systemDesign: [],
+          behavioral: []
+        },
+        onboardingComplete: true,
+        activeSection: "dashboard",
+        notifications: demoNotifications,
+        mobileMenuOpen: false,
+        isLoading: false,
+      }),
+      resetStore: () => set(initialState),
+
+      syncToCloud: async (email) => {
+        try {
+          const state = (await import("./userStore")).useSarthiStore.getState();
+          await API.saveOnboarding({ ...state.user, email });
+        } catch (err) {
+          console.error("[Store] syncToCloud failed (non-fatal):", err);
+        }
+      },
+
+      loadFromCloud: async (email) => {
+        try {
+          const res = await API.getProgress(email);
+          if (res.success && res.data) {
+            set((s) => ({
+              skillGap: { ...s.skillGap, ...(res.data.skillGap ?? {}) },
+              learningPath: { ...s.learningPath, ...(res.data.learningPath ?? {}) },
+              interviewPrep: { ...s.interviewPrep, ...(res.data.interviewPrep ?? {}) },
+            }));
+          }
+        } catch (err) {
+          console.error("[Store] loadFromCloud failed (non-fatal):", err);
+        }
+      },
+
+      syncTaskComplete: async (email, weekIndex, dayIndex, taskIndex) => {
+        try {
+          await API.completeTask({ email, weekIndex, dayIndex, taskIndex });
+        } catch (err) {
+          console.error("[Store] syncTaskComplete failed (non-fatal):", err);
+        }
+      },
     }),
-    { name: "sarthi-store" }
+    {
+      name: "sarthi-store",
+      partialize: (state) => ({
+        user: state.user,
+        skillGap: state.skillGap,
+        learningPath: state.learningPath,
+        projectReviews: state.projectReviews,
+        interviewPrep: state.interviewPrep,
+        onboardingComplete: state.onboardingComplete,
+        // specifically NOT persisting isLoading, notifications, activeSection, mobileMenuOpen
+      }),
+    }
   )
 );

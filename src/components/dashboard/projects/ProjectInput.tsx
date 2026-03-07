@@ -4,6 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Github, Sparkles, X, CheckCircle2, CircleDashed, Check } from "lucide-react";
 import ProjectResults from "@/components/dashboard/projects/ProjectResults";
+import { useSarthiStore } from "@/lib/store/userStore";
+import { API } from "@/lib/api";
+import { toast } from "sonner";
 
 const reviewOptions = [
     { id: "quality", label: "Code Quality" },
@@ -23,10 +26,18 @@ const loadingSteps = [
 ];
 
 export default function ProjectInput() {
+    const { addProjectReview } = useSarthiStore();
+
     const [techStack, setTechStack] = useState<string[]>([]);
     const [techInput, setTechInput] = useState("");
     const [selectedChecks, setSelectedChecks] = useState<string[]>(reviewOptions.map(o => o.id));
-    
+
+    // Form state
+    const [projectName, setProjectName] = useState("");
+    const [githubUrl, setGithubUrl] = useState("");
+    const [description, setDescription] = useState("");
+    const [projectType, setProjectType] = useState("");
+
     // Status state
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showResults, setShowResults] = useState(false);
@@ -50,32 +61,61 @@ export default function ProjectInput() {
         }
     };
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
+        if (!projectName || !githubUrl || !description || !projectType || techStack.length === 0) {
+            toast.error("Please fill all fields and add at least one technology.");
+            return;
+        }
+
         setIsAnalyzing(true);
         setCurrentStepIndex(0);
 
-        // Simulate progression of steps
-        loadingSteps.forEach((step, index) => {
-            setTimeout(() => {
-                setCurrentStepIndex(index);
-            }, step.delay);
-        });
+        // Progress Animation Interval
+        const interval = setInterval(() => {
+            setCurrentStepIndex(prev => {
+                if (prev >= loadingSteps.length - 1) {
+                    clearInterval(interval);
+                    return prev;
+                }
+                return prev + 1;
+            });
+        }, 2200);
 
-        // Finish analysis after all steps complete (approx 12 seconds total)
-        setTimeout(() => {
+        try {
+            const payload = {
+                projectName,
+                githubUrl,
+                description,
+                projectType,
+                techStack,
+                checks: selectedChecks
+            };
+
+            const response = await API.reviewProject(payload);
+
+            // Add the review result to store
+            addProjectReview(response.data);
+
+            clearInterval(interval);
             setIsAnalyzing(false);
             setShowResults(true);
-        }, 12000);
+            toast.success("Project review complete!");
+
+        } catch (error: any) {
+            clearInterval(interval);
+            setIsAnalyzing(false);
+            toast.error(error.message || "Failed to analyze project.");
+        }
     };
 
     return (
         <div className="space-y-8">
-            <motion.div 
+            <motion.div
                 className={`glass-card bg-[#13131f] border border-[#1e1e2e] rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-500 ${isAnalyzing ? 'shadow-[0_0_30px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/30' : ''}`}
             >
                 {/* Full Card Shimmer while analyzing */}
                 {isAnalyzing && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: [0.3, 0.7, 0.3] }}
                         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
@@ -91,6 +131,8 @@ export default function ProjectInput() {
                             <input
                                 type="text"
                                 placeholder="My Django Todo App"
+                                value={projectName}
+                                onChange={(e) => setProjectName(e.target.value)}
                                 disabled={isAnalyzing || showResults}
                                 className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[#6366f1] focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all disabled:opacity-50"
                             />
@@ -103,6 +145,8 @@ export default function ProjectInput() {
                                 <input
                                     type="url"
                                     placeholder="https://github.com/username/project"
+                                    value={githubUrl}
+                                    onChange={(e) => setGithubUrl(e.target.value)}
                                     disabled={isAnalyzing || showResults}
                                     className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[#6366f1] focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all disabled:opacity-50"
                                 />
@@ -142,6 +186,8 @@ export default function ProjectInput() {
                             <textarea
                                 placeholder="Describe what your project does, its main features, and what problem it solves..."
                                 rows={5}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
                                 disabled={isAnalyzing || showResults}
                                 className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[#6366f1] focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all resize-none custom-scrollbar disabled:opacity-50"
                             />
@@ -149,11 +195,13 @@ export default function ProjectInput() {
 
                         <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Project Type</label>
-                            <select 
+                            <select
+                                value={projectType}
+                                onChange={(e) => setProjectType(e.target.value)}
                                 disabled={isAnalyzing || showResults}
                                 className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-[#6366f1] focus:shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-all appearance-none disabled:opacity-50"
                             >
-                                <option value="" disabled selected>Select Type</option>
+                                <option value="" disabled>Select Type</option>
                                 <option value="web">🌐 Web App</option>
                                 <option value="mobile">📱 Mobile App</option>
                                 <option value="ml">🤖 ML/AI Project</option>
@@ -178,11 +226,10 @@ export default function ProjectInput() {
                                     disabled={isAnalyzing || showResults}
                                     className={`flex items-center gap-2 group focus:outline-none disabled:cursor-not-allowed ${isAnalyzing || showResults ? 'opacity-70' : ''}`}
                                 >
-                                    <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${
-                                        isChecked 
-                                        ? "bg-indigo-500 border-indigo-500" 
-                                        : "bg-[#0f0f1a] border-[#1e1e2e] group-hover:border-indigo-400"
-                                    } border-2`}>
+                                    <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${isChecked
+                                            ? "bg-indigo-500 border-indigo-500"
+                                            : "bg-[#0f0f1a] border-[#1e1e2e] group-hover:border-indigo-400"
+                                        } border-2`}>
                                         <AnimatePresence>
                                             {isChecked && (
                                                 <motion.div
@@ -233,7 +280,7 @@ export default function ProjectInput() {
                     {/* Animated Progress Steps */}
                     <AnimatePresence>
                         {isAnalyzing && (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, height: 0, marginTop: 0 }}
                                 animate={{ opacity: 1, height: "auto", marginTop: 24 }}
                                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
@@ -244,7 +291,7 @@ export default function ProjectInput() {
                                     const isCurrent = idx === currentStepIndex;
 
                                     return (
-                                        <motion.div 
+                                        <motion.div
                                             key={idx}
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: idx <= currentStepIndex + 1 ? 1 : 0.3, x: 0 }}
@@ -257,7 +304,7 @@ export default function ProjectInput() {
                                             ) : (
                                                 <div className="w-5 h-5 rounded-full border-2 border-[#1e1e2e] bg-[#0f0f1a]" />
                                             )}
-                                            
+
                                             <span className={`${isCompleted ? 'text-emerald-400' : isCurrent ? 'text-indigo-300 animate-pulse' : 'text-slate-500'}`}>
                                                 {step.text}
                                             </span>

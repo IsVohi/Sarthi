@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import InterviewHeader from "@/components/dashboard/interviews/InterviewHeader";
 import InterviewTabs from "@/components/dashboard/interviews/InterviewTabs";
+import InterviewPrepClient from "@/components/dashboard/interviews/InterviewPrepClient";
 
 export const metadata: Metadata = {
   title: "Interview Prep | Sarthi",
@@ -11,7 +12,9 @@ export default function InterviewPrepPage() {
   return (
     <div className="max-w-6xl mx-auto pb-12 space-y-8 h-full flex flex-col">
       <InterviewHeader />
-      <InterviewTabs />
+      <InterviewPrepClient>
+        <InterviewTabs />
+      </InterviewPrepClient>
     </div>
   );
 }

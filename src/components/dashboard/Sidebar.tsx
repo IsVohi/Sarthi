@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSarthiStore } from "@/lib/store/userStore";
 import {
@@ -17,6 +17,7 @@ import {
     Sparkles,
     HelpCircle,
     X,
+    LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -32,9 +33,16 @@ const navItems = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const user = useSarthiStore((s) => s.user);
     const mobileMenuOpen = useSarthiStore((s) => s.mobileMenuOpen);
     const setMobileMenuOpen = useSarthiStore((s) => s.setMobileMenuOpen);
+    const resetStore = useSarthiStore((s) => s.resetStore);
+
+    const handleLogout = () => {
+        resetStore();
+        router.push("/");
+    };
 
     const SidebarContent = (
         <div className="flex flex-col h-full bg-[#0f0f1a] border-r border-[#1e1e2e]">
@@ -49,7 +57,7 @@ export default function Sidebar() {
                         Sarthi
                     </span>
                 </Link>
-                <button 
+                <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="md:hidden p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg"
                 >
@@ -92,11 +100,10 @@ export default function Sidebar() {
                             key={item.name}
                             href={item.href}
                             onClick={() => setMobileMenuOpen(false)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${
-                                isActive
-                                    ? "bg-indigo-500/10 border-l-2 border-indigo-500 text-white rounded-l-none pl-4"
-                                    : "text-[#94a3b8] hover:text-white hover:bg-white/5 pl-4"
-                            }`}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${isActive
+                                ? "bg-indigo-500/10 border-l-2 border-indigo-500 text-white rounded-l-none pl-4"
+                                : "text-[#94a3b8] hover:text-white hover:bg-white/5 pl-4"
+                                }`}
                         >
                             <item.icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? "text-indigo-400" : ""}`} />
                             <span>{item.name}</span>
@@ -107,6 +114,13 @@ export default function Sidebar() {
 
             {/* Bottom */}
             <div className="p-4 border-t border-[#1e1e2e] space-y-3">
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all text-left"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                </button>
                 <a
                     href="#"
                     className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-[#94a3b8] hover:text-white hover:bg-white/5 rounded-lg transition-all"

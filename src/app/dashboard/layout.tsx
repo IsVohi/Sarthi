@@ -1,8 +1,39 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSarthiStore } from "@/lib/store/userStore";
 import Sidebar from "@/components/dashboard/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import PageTransition from "@/components/dashboard/PageTransition";
 import ChatFAB from "@/components/dashboard/ChatFAB";
 import { Toaster } from "@/components/ui/sonner";
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+    const router = useRouter();
+    const onboardingComplete = useSarthiStore((s) => s.onboardingComplete);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (mounted && !onboardingComplete) {
+            router.push("/onboarding");
+        }
+    }, [mounted, onboardingComplete, router]);
+
+    if (!mounted || !onboardingComplete) {
+        return (
+            <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-[#6366f1] border-t-transparent animate-spin" />
+            </div>
+        );
+    }
+
+    return <>{children}</>;
+}
 
 export default function DashboardLayout({
     children,
@@ -10,21 +41,23 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex bg-[#0a0a0f] min-h-screen text-slate-50 font-sans selection:bg-[#6366f1]/30 selection:text-white">
-            <Sidebar />
-            <main className="flex-1 h-screen relative flex flex-col min-w-0">
-                <div className="absolute inset-0 bg-grid-pattern opacity-10 mix-blend-overlay pointer-events-none" />
-                <div className="relative z-10 flex flex-col h-full">
-                    <TopBar />
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 custom-scrollbar">
-                        <PageTransition>
-                            {children}
-                        </PageTransition>
+        <AuthGuard>
+            <div className="flex bg-[#0a0a0f] min-h-screen text-slate-50 font-sans selection:bg-[#6366f1]/30 selection:text-white">
+                <Sidebar />
+                <main className="flex-1 h-screen relative flex flex-col min-w-0">
+                    <div className="absolute inset-0 bg-grid-pattern opacity-10 mix-blend-overlay pointer-events-none" />
+                    <div className="relative z-10 flex flex-col h-full">
+                        <TopBar />
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 custom-scrollbar">
+                            <PageTransition>
+                                {children}
+                            </PageTransition>
+                        </div>
                     </div>
-                </div>
-            </main>
-            <ChatFAB />
-            <Toaster theme="dark" position="bottom-right" />
-        </div>
+                </main>
+                <ChatFAB />
+                <Toaster theme="dark" position="bottom-right" />
+            </div>
+        </AuthGuard>
     );
 }

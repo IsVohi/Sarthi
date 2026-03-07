@@ -2,11 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSarthiStore } from "@/lib/store/userStore";
 
 export function Navbar() {
     const [scrolled, setScrolled] = useState(false);
+    const router = useRouter();
+    const demoLogin = useSarthiStore((s) => s.demoLogin);
+
+    const handleDemo = () => {
+        demoLogin();
+        router.push("/dashboard");
+    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -39,7 +48,13 @@ export function Navbar() {
                     <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Link href="/dashboard" className="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                    <button
+                        onClick={handleDemo}
+                        className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full hover:bg-amber-500/20 transition-colors"
+                    >
+                        <Zap className="w-4 h-4" /> Demo Mode
+                    </button>
+                    <Link href="/signin" className="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white transition-colors ml-2">
                         Sign In
                     </Link>
                     <Link href="/onboarding" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(99,102,241,0.5)]">

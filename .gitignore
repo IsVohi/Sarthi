@@ -56,3 +56,10 @@ Icon
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 
+# Sarthi specific
+apikeys
+check_db.ts
+apikeys*
+*.png
+*.jpg
+*.webp

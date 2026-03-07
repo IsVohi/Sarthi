@@ -3,34 +3,60 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare, Star, Send, Bot, CheckCircle2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { useSarthiStore } from "@/lib/store/userStore";
+import { API } from "@/lib/api";
 
 export default function BehavioralTab() {
+    const { interviewPrep } = useSarthiStore();
+    const behavioralQuestions = interviewPrep.behavioral;
+
     const [situation, setSituation] = useState("");
     const [task, setTask] = useState("");
     const [action, setAction] = useState("");
     const [result, setResult] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [feedback, setFeedback] = useState(false);
+    const [feedback, setFeedback] = useState<string | null>(null);
 
-    const questions = [
-        "Tell me about a time you had a conflict with a teammate.",
-        "Describe a situation where you had to meet a tight deadline.",
-        "Tell me about your most challenging technical problem.",
-    ];
+    // Default to first question or null
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const selectedQuestionObj = behavioralQuestions[selectedIndex];
 
-    const [selectedQuestion, setSelectedQuestion] = useState(questions[0]);
-
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
         setIsAnalyzing(true);
-        setTimeout(() => {
+        setFeedback(null);
+
+        try {
+            const prompt = `Please act as an expert technical recruiter. Evaluate the following behavioral interview answer formatted using the STAR method. 
+
+Question: ${selectedQuestionObj?.question}
+
+Candidate's Answer:
+Situation: ${situation}
+Task: ${task}
+Action: ${action}
+Result: ${result}
+
+Please provide:
+1. A score out of 10.
+2. 2-3 Strengths of their answer.
+3. 1-2 areas to improve (especially focusing on metrics in the result, or clarity in the action).
+
+Format your response in Markdown. Do not include a conversational intro, just the evaluation.`;
+
+            const res = await API.chat({ message: prompt, context: "Behavioral Interview Practice Tab" });
+            setFeedback(res.data);
+        } catch (error) {
+            console.error(error);
+            setFeedback("Failed to get AI evaluation. Please try again.");
+        } finally {
             setIsAnalyzing(false);
-            setFeedback(true);
-        }, 2000);
+        }
     };
 
     return (
         <div className="flex flex-col lg:flex-row gap-8 pb-8">
-            
+
             {/* Input Form Column */}
             <div className="lg:w-3/5 space-y-6">
                 <div className="glass-card bg-[#13131f] border border-[#1e1e2e] rounded-2xl p-6">
@@ -46,13 +72,28 @@ export default function BehavioralTab() {
 
                     <div className="mb-6">
                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Selected Question</label>
-                        <select 
-                            value={selectedQuestion}
-                            onChange={(e) => setSelectedQuestion(e.target.value)}
-                            className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 appearance-none text-sm"
-                        >
-                            {questions.map((q, i) => <option key={i} value={q}>{q}</option>)}
-                        </select>
+                        {behavioralQuestions.length === 0 ? (
+                            <div className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-slate-400 text-sm">
+                                Loading AI generated questions...
+                            </div>
+                        ) : (
+                            <>
+                                <select
+                                    value={selectedIndex}
+                                    onChange={(e) => setSelectedIndex(Number(e.target.value))}
+                                    className="w-full bg-[#0f0f1a] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 appearance-none text-sm mb-3"
+                                >
+                                    {behavioralQuestions.map((q, i) => <option key={i} value={i}>{q.question}</option>)}
+                                </select>
+
+                                {selectedQuestionObj && (
+                                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-100/80">
+                                        <strong className="text-emerald-400 block mb-1">AI Tip:</strong>
+                                        {selectedQuestionObj.tips}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
 
                     <div className="space-y-4">
@@ -61,7 +102,7 @@ export default function BehavioralTab() {
                                 <span>Situation <span className="text-slate-500 font-normal ml-1">(Context)</span></span>
                                 <span className={`text-xs ${situation.length > 50 ? 'text-emerald-400' : 'text-slate-500'}`}>{situation.length}/50 min chars</span>
                             </label>
-                            <textarea 
+                            <textarea
                                 value={situation} onChange={(e) => setSituation(e.target.value)}
                                 placeholder="Describe the background or context of the situation..."
                                 className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/50 resize-none h-24 custom-scrollbar"
@@ -70,7 +111,7 @@ export default function BehavioralTab() {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-300 mb-2">Task <span className="text-slate-500 font-normal ml-1">(Your responsibility)</span></label>
-                            <textarea 
+                            <textarea
                                 value={task} onChange={(e) => setTask(e.target.value)}
                                 placeholder="What was your specific role or challenge?"
                                 className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/50 resize-none h-20 custom-scrollbar"
@@ -79,7 +120,7 @@ export default function BehavioralTab() {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-300 mb-2">Action <span className="text-slate-500 font-normal ml-1">(What YOU did)</span></label>
-                            <textarea 
+                            <textarea
                                 value={action} onChange={(e) => setAction(e.target.value)}
                                 placeholder="Detail the specific actions you took to address the task..."
                                 className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/50 resize-none h-32 custom-scrollbar"
@@ -88,7 +129,7 @@ export default function BehavioralTab() {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-300 mb-2">Result <span className="text-slate-500 font-normal ml-1">(Outcome & Impact)</span></label>
-                            <textarea 
+                            <textarea
                                 value={result} onChange={(e) => setResult(e.target.value)}
                                 placeholder="What was the result? Include metrics or tangible outcomes if possible..."
                                 className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/50 resize-none h-24 custom-scrollbar"
@@ -96,7 +137,7 @@ export default function BehavioralTab() {
                         </div>
                     </div>
 
-                    <button 
+                    <button
                         onClick={handleAnalyze}
                         disabled={!situation || !task || !action || !result || isAnalyzing}
                         className="w-full mt-6 bg-purple-600 hover:bg-purple-700 disabled:bg-[#1e1e2e] disabled:text-slate-500 text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(147,51,234,0.3)] disabled:shadow-none"
@@ -117,7 +158,7 @@ export default function BehavioralTab() {
             {/* Feedback Column */}
             <div className="lg:w-2/5">
                 {feedback ? (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         className="glass-card bg-[#13131f] border border-[#1e1e2e] rounded-2xl p-6 sticky top-6"
@@ -127,32 +168,8 @@ export default function BehavioralTab() {
                             <h3 className="font-bold text-white text-lg">AI Evaluation</h3>
                         </div>
 
-                        <div className="text-center mb-8">
-                            <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400 mb-2">8/10</div>
-                            <p className="text-sm font-medium text-emerald-400 bg-emerald-500/10 inline-block px-3 py-1 rounded-full border border-emerald-500/20">Strong Answer</p>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Strengths</h4>
-                                <ul className="space-y-2">
-                                    <li className="flex items-start gap-2 text-sm text-slate-300">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                                        Clear definition of the problem in Situation.
-                                    </li>
-                                    <li className="flex items-start gap-2 text-sm text-slate-300">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                                        Action section uses &quot;I&quot; instead of &quot;We&quot;, showing personal ownership.
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">To Improve</h4>
-                                <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg text-sm text-amber-200/90">
-                                    Your <strong>Result</strong> lacks quantitative metrics. Try to add numbers. For example, instead of &quot;the query became faster&quot;, say &quot;the query latency dropped by 45% (from 200ms to 110ms)&quot;.
-                                </div>
-                            </div>
+                        <div className="prose prose-invert prose-sm max-w-none prose-p:text-slate-300 prose-li:text-slate-300 prose-strong:text-emerald-400">
+                            <ReactMarkdown>{feedback}</ReactMarkdown>
                         </div>
                     </motion.div>
                 ) : (

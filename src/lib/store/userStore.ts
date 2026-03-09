@@ -36,15 +36,20 @@ export interface ProjectIssue {
 }
 
 export interface ProjectReview {
-  id: string; // generated locally front-end
+  id: string;
   projectName: string;
   githubUrl: string;
   techStack: string[];
   status: "pending" | "reviewed";
   submittedAt: string;
+  date?: string; // Compatibility with backend
   overallScore: number;
+  securityScore?: number;
+  performanceScore?: number;
+  codeQualityScore?: number;
   strengths: string[];
-  issues: ProjectIssue[];
+  issues: any[]; // Changed to any[] to handle string array or object array from AI
+  feedback?: string;
   improvedReadme: string;
   interviewQuestions: string[];
 }
@@ -345,7 +350,20 @@ export const useSarthiStore = create<SarthiStore>()(
         set((s) => ({ user: { ...s.user, ...data } })),
 
       setSkillGap: (data) =>
-        set((s) => ({ skillGap: { ...s.skillGap, ...data } })),
+        set((s) => {
+          const newState = { skillGap: { ...s.skillGap, ...data } };
+          if (data.analyzed && !s.skillGap.analyzed) {
+            const notif: Notification = {
+              id: Math.random().toString(36).substr(2, 9),
+              text: "Your skill gap analysis is ready!",
+              type: "success",
+              read: false,
+              createdAt: new Date().toISOString(),
+            };
+            return { ...newState, notifications: [notif, ...s.notifications] };
+          }
+          return newState;
+        }),
 
       setLearningPath: (data) =>
         set((s) => ({ learningPath: { ...s.learningPath, ...data } })),
@@ -356,7 +374,19 @@ export const useSarthiStore = create<SarthiStore>()(
         })),
 
       addProjectReview: (review) =>
-        set((s) => ({ projectReviews: [...s.projectReviews, review] })),
+        set((s) => {
+          const notif: Notification = {
+            id: Math.random().toString(36).substr(2, 9),
+            text: `Project "${review.projectName}" review completed!`,
+            type: "success",
+            read: false,
+            createdAt: new Date().toISOString(),
+          };
+          return {
+            projectReviews: [...s.projectReviews, review],
+            notifications: [notif, ...s.notifications]
+          };
+        }),
 
       toggleTaskCompletion: (weekNumber, dayName, taskTitle) =>
         set((s) => {
@@ -505,6 +535,12 @@ export const useSarthiStore = create<SarthiStore>()(
               interviewPrep: { ...s.interviewPrep, ...(res.data.interviewPrep ?? {}) },
             }));
           }
+
+          // Also fetch project reviews
+          const reviewsRes = await API.getProjectReviews(email);
+          if (reviewsRes.success && reviewsRes.data) {
+            set({ projectReviews: reviewsRes.data });
+          }
         } catch (err) {
           console.error("[Store] loadFromCloud failed (non-fatal):", err);
         }
@@ -527,7 +563,8 @@ export const useSarthiStore = create<SarthiStore>()(
         projectReviews: state.projectReviews,
         interviewPrep: state.interviewPrep,
         onboardingComplete: state.onboardingComplete,
-        // specifically NOT persisting isLoading, notifications, activeSection, mobileMenuOpen
+        notifications: state.notifications,
+        // specifically NOT persisting isLoading, activeSection, mobileMenuOpen
       }),
     }
   )

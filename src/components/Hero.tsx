@@ -88,7 +88,7 @@ export function Hero() {
 
                     {/* CTAs */}
                     <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4 mb-16 w-full justify-center">
-                        <Link href="/onboarding" className="flex items-center gap-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-8 py-4 rounded-full font-semibold transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] w-full sm:w-auto justify-center group text-lg">
+                        <Link href="/signup" className="flex items-center gap-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-8 py-4 rounded-full font-semibold transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] w-full sm:w-auto justify-center group text-lg">
                             Analyze My Skills
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </Link>

@@ -11,7 +11,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const onboardingComplete = useSarthiStore((s) => s.onboardingComplete);
+    const { user, onboardingComplete } = useSarthiStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -19,12 +19,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (mounted && !onboardingComplete) {
-            router.push("/onboarding");
+        if (mounted) {
+            if (!user.email) {
+                router.push("/signin");
+            } else if (!onboardingComplete) {
+                router.push("/onboarding");
+            }
         }
-    }, [mounted, onboardingComplete, router]);
+    }, [mounted, user.email, onboardingComplete, router]);
 
-    if (!mounted || !onboardingComplete) {
+    if (!mounted || !user.email || !onboardingComplete) {
         return (
             <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-2 border-[#6366f1] border-t-transparent animate-spin" />

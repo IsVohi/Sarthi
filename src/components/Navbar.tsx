@@ -57,7 +57,7 @@ export function Navbar() {
                     <Link href="/signin" className="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white transition-colors ml-2">
                         Sign In
                     </Link>
-                    <Link href="/onboarding" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+                    <Link href="/signup" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:opacity-90 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(99,102,241,0.5)]">
                         Get Started
                     </Link>
                 </div>

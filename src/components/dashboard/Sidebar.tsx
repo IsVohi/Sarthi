@@ -18,13 +18,15 @@ import {
     HelpCircle,
     X,
     LogOut,
+    FileText,
 } from "lucide-react";
 
 const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Skill Gap Analysis", href: "/dashboard/skills", icon: BrainCircuit },
     { name: "Learning Path", href: "/dashboard/path", icon: Map },
-    { name: "Project Review", href: "/dashboard/project-review", icon: Code2 },
+    { name: "Project Review", href: "/dashboard/projects", icon: Code2 },
+    { name: "Resume Audit", href: "/dashboard/resume", icon: FileText },
     { name: "Interview Prep", href: "/dashboard/interview-prep", icon: MessageSquare },
     { name: "Progress", href: "/dashboard/progress", icon: TrendingUp },
     { name: "Resources", href: "/dashboard/resources", icon: BookOpen },
@@ -95,18 +97,30 @@ export default function Sidebar() {
                         item.href === "/dashboard"
                             ? pathname === "/dashboard"
                             : pathname.startsWith(item.href);
+
+                    const notifications = useSarthiStore.getState().notifications;
+                    const unreadCount = notifications.filter(n => !n.read).length;
+                    const showBadge = item.name === "Dashboard" && unreadCount > 0;
+
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
                             onClick={() => setMobileMenuOpen(false)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${isActive
+                            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${isActive
                                 ? "bg-indigo-500/10 border-l-2 border-indigo-500 text-white rounded-l-none pl-4"
                                 : "text-[#94a3b8] hover:text-white hover:bg-white/5 pl-4"
                                 }`}
                         >
-                            <item.icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? "text-indigo-400" : ""}`} />
-                            <span>{item.name}</span>
+                            <div className="flex items-center gap-3">
+                                <item.icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? "text-indigo-400" : ""}`} />
+                                <span>{item.name}</span>
+                            </div>
+                            {showBadge && (
+                                <span className="px-2 py-0.5 rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                    {unreadCount}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}

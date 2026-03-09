@@ -71,14 +71,14 @@ export default function BottomRow() {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2 mb-3">
-                                    {review.techStack.map((tech, idx) => (
+                                    {(review.techStack || []).map((tech, idx) => (
                                         <span key={idx} className="text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 bg-indigo-500/10 text-indigo-400">
                                             {tech}
                                         </span>
                                     ))}
-                                    {review.issues.length > 0 && (
+                                    {(review.issues || []).length > 0 && (
                                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 bg-red-500/10 text-red-400">
-                                            <AlertTriangle className="w-3 h-3" /> {review.issues.length} Issues
+                                            <AlertTriangle className="w-3 h-3" /> {(review.issues || []).length} Issues
                                         </span>
                                     )}
                                 </div>

@@ -122,7 +122,7 @@ export default function SkillGapChart() {
                         <BarChart
                             data={dynamicSkillData}
                             layout="vertical"
-                            margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
+                            margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                             barGap={4}
                         >
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1e1e2e" />
@@ -132,11 +132,12 @@ export default function SkillGapChart() {
                                 type="category"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                width={100}
+                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                width={80}
+                                interval={0}
                             />
                             <Tooltip cursor={{ fill: '#1e1e2e', opacity: 0.4 }} content={<CustomTooltip />} />
-                            <Bar dataKey="current" name="Your Level" radius={[0, 4, 4, 0]} barSize={12}>
+                            <Bar dataKey="current" name="Your Level" radius={[0, 4, 4, 0]} barSize={10}>
                                 {dynamicSkillData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.priority === 'high' ? '#ef4444' : entry.priority === 'medium' ? '#f59e0b' : '#10b981'} />
                                 ))}

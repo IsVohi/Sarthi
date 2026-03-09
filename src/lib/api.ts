@@ -52,12 +52,16 @@ export const API = {
         });
     },
 
-    async reviewProject(data: any) {
+    async submitProjectReview(data: any) {
         return await customFetch("/api/project-review", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
+    },
+
+    async getProjectReviews(email: string) {
+        return await customFetch(`/api/project-review?email=${encodeURIComponent(email)}`);
     },
 
     async getInterviewPrep(data: any) {
@@ -78,6 +82,14 @@ export const API = {
 
     async chat(data: { message: string; context: string }) {
         return await customFetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+    },
+
+    async interviewChat(data: { message: string; history: any[]; userProfile: any }) {
+        return await customFetch("/api/interview/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Github, Sparkles } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -64,6 +64,12 @@ export function OnboardingFlow() {
     const [step, setStep] = useState(1);
     const [direction, setDirection] = useState(0); // 1 = forward, -1 = backward
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (!user.email) {
+            router.push("/signup");
+        }
+    }, [user.email, router]);
 
     const [data, setData] = useState<OnboardingData>({
         fullName: "",

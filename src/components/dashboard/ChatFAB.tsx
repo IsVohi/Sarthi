@@ -61,7 +61,7 @@ export default function ChatFAB() {
                     onClick={() => { setIsOpen(true); setIsMinimized(false); }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-[0_0_25px_rgba(99,102,241,0.5)] hover:shadow-[0_0_35px_rgba(99,102,241,0.7)] transition-shadow group"
+                    className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 p-3.5 md:p-4 rounded-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-[0_0_25px_rgba(99,102,241,0.5)] hover:shadow-[0_0_35px_rgba(99,102,241,0.7)] transition-shadow group"
                 >
                     <Sparkles className="w-6 h-6" />
                     <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#13131f] text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity border border-[#1e1e2e] whitespace-nowrap hidden md:block pointer-events-none">
@@ -168,7 +168,7 @@ export default function ChatFAB() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => setIsMinimized(false)}
-                    className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#13131f] border border-[#1e1e2e] text-white text-sm font-medium shadow-lg hover:border-indigo-500/30 transition-all"
+                    className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#13131f] border border-[#1e1e2e] text-white text-sm font-medium shadow-lg hover:border-indigo-500/30 transition-all"
                 >
                     <Sparkles className="w-4 h-4 text-indigo-400" /> Sarthi AI
                 </motion.button>
